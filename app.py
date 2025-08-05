@@ -1,30 +1,51 @@
 import streamlit as st
-from moviepy.editor import TextClip, CompositeVideoClip
-import tempfile
-import os
+from elevenlabs import generate, save, set_api_key
+import whisper
 
-st.set_page_config(page_title="📝 Text to Scrolling Video", page_icon="🎥")
-st.title("📝 Text to Scrolling Video Generator")
-st.markdown("Paste your text, generate a scrolling video, preview it, and download! 🎬")
+# ----------- SETUP ----------
+# 🔐 ElevenLabs API Key (Your key added here)
+ELEVENLABS_API_KEY = "sk_6b2849ee7dbc95055d55ce2a11fb359848cfe5f049522226"
+set_api_key(ELEVENLABS_API_KEY)
 
-text_input = st.text_area("✍️ Paste your text here", height=200)
-generate_button = st.button("🎬 Generate Video")
+# Load Whisper model once
+@st.cache_resource
+def load_whisper_model():
+    return whisper.load_model("base")
 
-if generate_button and text_input.strip() != "":
-    with st.spinner("Generating video..."):
+whisper_model = load_whisper_model()
 
-        # Generate a scrolling text clip
-        txt_clip = TextClip(text_input, fontsize=40, color='white', size=(720, 1280), method='caption', font="Arial")
-        scroll_clip = txt_clip.set_duration(10).set_position(("center", "center")).on_color(color=(0, 0, 0), col_opacity=1)
+# ----------- TTS FUNCTION ----------
+def generate_audio(text, voice="Rachel", model="eleven_multilingual_v2"):
+    audio = generate(text=text, voice=voice, model=model)
+    save(audio, "output.mp3")
+    return "output.mp3"
 
-        # Save to temporary file
-        temp_dir = tempfile.mkdtemp()
-        video_path = os.path.join(temp_dir, "scrolling_text.mp4")
-        scroll_clip.write_videofile(video_path, fps=24, codec='libx264')
+# ----------- WHISPER TIMING ----------
+def get_timed_segments(audio_path):
+    result = whisper_model.transcribe(audio_path)
+    return result['segments']
 
-        st.success("✅ Video generated!")
+# ----------- STREAMLIT UI ----------
+st.title("🗣️ Multilingual Text-to-Speech with Pause Sync")
+st.markdown("Generate realistic voiceovers in many languages, with pause timing via AI.")
 
-        # Preview and Download
-        st.video(video_path)
-        with open(video_path, "rb") as f:
-            st.download_button("⬇️ Download Video", f, file_name="scrolling_text.mp4", mime="video/mp4")
+text_input = st.text_area("🎤 Enter your text:", "Hello! Welcome to our multilingual AI voice demo.")
+voice = st.selectbox("🗣️ Choose a voice:", ["Rachel", "Domi", "Bella", "Antoni", "Elli"])
+generate_button = st.button("🔊 Generate Audio")
+
+if generate_button:
+    if not text_input.strip():
+        st.warning("Please enter some text first.")
+    else:
+        with st.spinner("Generating audio..."):
+            audio_file = generate_audio(text_input, voice)
+            st.success("✅ Audio generated!")
+
+            # Playback
+            st.audio(audio_file, format='audio/mp3')
+
+        with st.spinner("Detecting pauses and transcribing..."):
+            segments = get_timed_segments(audio_file)
+            st.markdown("### 🧠 Pause-Synced Transcript:")
+            for seg in segments:
+                st.write(f"**{seg['start']:.2f}s – {seg['end']:.2f}s**: {seg['text']}")
