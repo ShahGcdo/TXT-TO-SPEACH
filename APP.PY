@@ -2,7 +2,7 @@ import streamlit as st
 import speech_recognition as sr
 import time
 
-# Function: Typing animation effect
+# Typing animation function
 def type_like_effect(text, speed=0.05):
     placeholder = st.empty()
     current_text = ""
@@ -12,12 +12,12 @@ def type_like_effect(text, speed=0.05):
         time.sleep(speed)
     placeholder.markdown(current_text)
 
-# App UI
+# Streamlit page setup
 st.set_page_config(page_title="Live Voice Typing", page_icon="🎙")
 st.title("🎙 Live Voice Typing")
 st.markdown("Speak and watch your words appear like you're typing in real time!")
 
-# Record and transcribe
+# Button to trigger recording
 if st.button("🎤 Start Speaking"):
     recognizer = sr.Recognizer()
     with sr.Microphone() as source:
