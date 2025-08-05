@@ -1,32 +1,30 @@
 import streamlit as st
-import speech_recognition as sr
-import time
+from moviepy.editor import TextClip, CompositeVideoClip
+import tempfile
+import os
 
-def type_like_effect(text, speed=0.05):
-    placeholder = st.empty()
-    current_text = ""
-    for char in text:
-        current_text += char
-        placeholder.markdown(current_text + "▌")
-        time.sleep(speed)
-    placeholder.markdown(current_text)
+st.set_page_config(page_title="📝 Text to Scrolling Video", page_icon="🎥")
+st.title("📝 Text to Scrolling Video Generator")
+st.markdown("Paste your text, generate a scrolling video, preview it, and download! 🎬")
 
-st.set_page_config(page_title="🎙 Voice to Typing", page_icon="🎤")
-st.title("🎙 Voice Typing Effect (via Upload)")
-st.markdown("Upload an audio file (.wav or .mp3) and see it typed out like you're speaking!")
+text_input = st.text_area("✍️ Paste your text here", height=200)
+generate_button = st.button("🎬 Generate Video")
 
-audio_file = st.file_uploader("Upload Audio", type=["wav", "mp3"])
+if generate_button and text_input.strip() != "":
+    with st.spinner("Generating video..."):
 
-if audio_file is not None:
-    recognizer = sr.Recognizer()
-    with sr.spinner("Transcribing..."):
-        with sr.AudioFile(audio_file) as source:
-            audio_data = recognizer.record(source)
-            try:
-                result = recognizer.recognize_google(audio_data)
-                st.success("✅ Transcription successful!")
-                type_like_effect(result, speed=0.05)
-            except sr.UnknownValueError:
-                st.error("❌ Could not understand audio.")
-            except sr.RequestError as e:
-                st.error(f"API error: {e}")
+        # Generate a scrolling text clip
+        txt_clip = TextClip(text_input, fontsize=40, color='white', size=(720, 1280), method='caption', font="Arial")
+        scroll_clip = txt_clip.set_duration(10).set_position(("center", "center")).on_color(color=(0, 0, 0), col_opacity=1)
+
+        # Save to temporary file
+        temp_dir = tempfile.mkdtemp()
+        video_path = os.path.join(temp_dir, "scrolling_text.mp4")
+        scroll_clip.write_videofile(video_path, fps=24, codec='libx264')
+
+        st.success("✅ Video generated!")
+
+        # Preview and Download
+        st.video(video_path)
+        with open(video_path, "rb") as f:
+            st.download_button("⬇️ Download Video", f, file_name="scrolling_text.mp4", mime="video/mp4")
