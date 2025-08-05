@@ -2,7 +2,6 @@ import streamlit as st
 import speech_recognition as sr
 import time
 
-# Typing animation function
 def type_like_effect(text, speed=0.05):
     placeholder = st.empty()
     current_text = ""
@@ -12,25 +11,22 @@ def type_like_effect(text, speed=0.05):
         time.sleep(speed)
     placeholder.markdown(current_text)
 
-# Streamlit page setup
-st.set_page_config(page_title="Live Voice Typing", page_icon="🎙")
-st.title("🎙 Live Voice Typing")
-st.markdown("Speak and watch your words appear like you're typing in real time!")
+st.set_page_config(page_title="🎙 Voice to Typing", page_icon="🎤")
+st.title("🎙 Voice Typing Effect (via Upload)")
+st.markdown("Upload an audio file (.wav or .mp3) and see it typed out like you're speaking!")
 
-# Button to trigger recording
-if st.button("🎤 Start Speaking"):
+audio_file = st.file_uploader("Upload Audio", type=["wav", "mp3"])
+
+if audio_file is not None:
     recognizer = sr.Recognizer()
-    with sr.Microphone() as source:
-        st.info("Listening... Please speak clearly.")
-        audio = recognizer.listen(source)
-
-    try:
-        with st.spinner("Transcribing your speech..."):
-            result = recognizer.recognize_google(audio)
-            st.success("✅ Transcription successful!")
-            type_like_effect(result, speed=0.05)
-
-    except sr.UnknownValueError:
-        st.error("😕 Sorry, couldn't understand what you said.")
-    except sr.RequestError as e:
-        st.error(f"⚠️ Could not request results; {e}")
+    with sr.spinner("Transcribing..."):
+        with sr.AudioFile(audio_file) as source:
+            audio_data = recognizer.record(source)
+            try:
+                result = recognizer.recognize_google(audio_data)
+                st.success("✅ Transcription successful!")
+                type_like_effect(result, speed=0.05)
+            except sr.UnknownValueError:
+                st.error("❌ Could not understand audio.")
+            except sr.RequestError as e:
+                st.error(f"API error: {e}")
